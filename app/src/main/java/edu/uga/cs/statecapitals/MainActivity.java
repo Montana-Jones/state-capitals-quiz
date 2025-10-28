@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,5 +21,13 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        ViewPager2 pager = findViewById( R.id.viewpager );
+        StateCapitalsPagerAdapter avpAdapter = new
+                StateCapitalsPagerAdapter(
+                getSupportFragmentManager(), getLifecycle() );
+        pager.setOrientation(
+                ViewPager2.ORIENTATION_HORIZONTAL );
+        pager.setAdapter( avpAdapter );
     }
 }
