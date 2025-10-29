@@ -19,7 +19,7 @@ public class StateCapitalsPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        return StateCapitalFragment.newInstance(questionIds.get(position));
+        return StateCapitalFragment.newInstance(questionIds.get(position), position + 1);
     }
 
     @Override

@@ -67,8 +67,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+
+        // Save current ViewPager position
         ViewPager2 pager = findViewById(R.id.viewpager);
         outState.putInt("currentPosition", pager.getCurrentItem());
+
+        // Save selected answers and correct answers
         outState.putStringArrayList("selectedAnswers", new ArrayList<>(selectedAnswers));
         outState.putStringArrayList("correctAnswers", new ArrayList<>(correctAnswers));
     }
