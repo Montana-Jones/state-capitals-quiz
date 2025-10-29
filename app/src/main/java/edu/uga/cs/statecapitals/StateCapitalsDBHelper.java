@@ -1,4 +1,4 @@
-package edu.uga.cs;
+package edu.uga.cs.statecapitals;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
