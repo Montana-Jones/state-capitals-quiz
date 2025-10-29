@@ -15,6 +15,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class StateCapitalFragment extends Fragment {
 
@@ -31,19 +32,21 @@ public class StateCapitalFragment extends Fragment {
     }
 
     // Use this factory method to pass which state to show
-    public static StateCapitalFragment newInstance(int position) {
+    public static StateCapitalFragment newInstance(int questionId) {
         StateCapitalFragment fragment = new StateCapitalFragment();
         Bundle args = new Bundle();
-        args.putInt("position", position);
+        args.putInt("questionId", questionId);
         fragment.setArguments(args);
         return fragment;
     }
+
+    private int questionId;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            position = getArguments().getInt("position");
+            questionId = getArguments().getInt("questionId");
         }
     }
 
@@ -70,17 +73,19 @@ public class StateCapitalFragment extends Fragment {
 
         Cursor cursor = db.query(
                 StateCapitalsDBHelper.TABLE_STATECAPITALS,
-                null, null, null, null, null, null
+                null, StateCapitalsDBHelper.STATECAPITALS_COLUMN_ID + "=?", new String[]{String.valueOf(questionId)}, null, null, null
         );
 
         if (cursor.moveToPosition(position)) {
+            int _id = cursor.getInt(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_ID));
             String state = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_STATE));
             String capital = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_CAPITAL));
             String option1 = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION1));
             String option2 = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION2));
 
-            titleView.setText("Question " + questionNum);
+            titleView.setText("Question " + questionNum++);
             questionView.setText("What is the capital of " + state + "?");
+
 
             // Randomize answer order
             List<String> options = new ArrayList<>();

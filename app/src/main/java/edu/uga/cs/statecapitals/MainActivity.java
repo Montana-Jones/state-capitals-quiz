@@ -2,6 +2,7 @@ package edu.uga.cs.statecapitals;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 
@@ -15,6 +16,9 @@ import androidx.viewpager2.widget.ViewPager2;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,10 +34,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         readCSV(this);
+
+        List<Integer> questionIds = getRandomizedQuestions(this, 6);
+
         ViewPager2 pager = findViewById( R.id.viewpager );
         StateCapitalsPagerAdapter adapter = new
                 StateCapitalsPagerAdapter(
-                getSupportFragmentManager(), getLifecycle() );
+                getSupportFragmentManager(), getLifecycle(), questionIds );
         pager.setOrientation(
                 ViewPager2.ORIENTATION_HORIZONTAL );
         pager.setAdapter( adapter );
@@ -84,5 +91,28 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static List<Integer> getRandomizedQuestions(Context context, int count) {
+        List<Integer> ids = new ArrayList<>();
+        StateCapitalsDBHelper dbHelper = StateCapitalsDBHelper.getInstance(context);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.query(
+                StateCapitalsDBHelper.TABLE_STATECAPITALS,
+                new String[]{StateCapitalsDBHelper.STATECAPITALS_COLUMN_ID},
+                null, null, null, null, null
+        );
+        while (cursor.moveToNext()) {
+            ids.add(cursor.getInt(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_ID)));
+        }
+        cursor.close();
+        db.close();
+
+        Collections.shuffle(ids);
+        if (ids.size() > count) {
+            ids = ids.subList(0, count);
+        }
+
+        return ids;
     }
 }
