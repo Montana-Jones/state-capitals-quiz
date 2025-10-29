@@ -5,12 +5,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
-
 import java.util.List;
 
 public class StateCapitalsPagerAdapter extends FragmentStateAdapter {
 
-    private static final int NUM_STATES = 50; // or however many entries in your CSV
     private final List<Integer> questionIds;
 
     public StateCapitalsPagerAdapter(@NonNull FragmentManager fm, @NonNull Lifecycle lifecycle, List<Integer> questionIds) {

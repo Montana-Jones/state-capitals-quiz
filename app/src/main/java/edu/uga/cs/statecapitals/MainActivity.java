@@ -1,18 +1,12 @@
 package edu.uga.cs.statecapitals;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,62 +16,94 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private List<String> selectedAnswers = new ArrayList<>();
+    private List<String> correctAnswers = new ArrayList<>();
+    private List<Integer> questionIds = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
+        // Populate DB from CSV if needed
         readCSV(this);
 
-        List<Integer> questionIds = getRandomizedQuestions(this, 6);
+        // Generate 6 random questions
+        questionIds = getRandomQuestionIds(this, 6);
 
-        ViewPager2 pager = findViewById( R.id.viewpager );
-        StateCapitalsPagerAdapter adapter = new
-                StateCapitalsPagerAdapter(
-                getSupportFragmentManager(), getLifecycle(), questionIds );
-        pager.setOrientation(
-                ViewPager2.ORIENTATION_HORIZONTAL );
-        pager.setAdapter( adapter );
+        // Restore state if applicable
+        if (savedInstanceState != null) {
+            selectedAnswers = savedInstanceState.getStringArrayList("selectedAnswers");
+            correctAnswers = savedInstanceState.getStringArrayList("correctAnswers");
+        }
+
+        ViewPager2 pager = findViewById(R.id.viewpager);
+        StateCapitalsPagerAdapter adapter = new StateCapitalsPagerAdapter(
+                getSupportFragmentManager(),
+                getLifecycle(),
+                questionIds
+        );
+        pager.setAdapter(adapter);
+
+        // Restore position
+        if (savedInstanceState != null) {
+            int restoredPosition = savedInstanceState.getInt("currentPosition", 0);
+            pager.setCurrentItem(restoredPosition, false);
+        }
+
+        // Detect swipe past last question to submit automatically
+        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                if (position == questionIds.size()) {
+                    new QuizResultTask(MainActivity.this).execute();
+                }
+            }
+        });
     }
 
+    // Save state for rotation/process death
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ViewPager2 pager = findViewById(R.id.viewpager);
+        outState.putInt("currentPosition", pager.getCurrentItem());
+        outState.putStringArrayList("selectedAnswers", new ArrayList<>(selectedAnswers));
+        outState.putStringArrayList("correctAnswers", new ArrayList<>(correctAnswers));
+    }
+
+    public void saveAnswer(int questionNumber, String selectedAnswer, String correctAnswer) {
+        if (selectedAnswers.size() < 6) selectedAnswers.add(selectedAnswer);
+        if (correctAnswers.size() < 6) correctAnswers.add(correctAnswer);
+    }
+
+    public List<String> getSelectedAnswers() { return selectedAnswers; }
+    public List<String> getCorrectAnswers() { return correctAnswers; }
+
+    // Read CSV and populate DB
     public static void readCSV(Context context) {
         StateCapitalsDBHelper dbHelper = StateCapitalsDBHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        // Optional: clear old data first
-        db.delete(StateCapitalsDBHelper.TABLE_STATECAPITALS, null, null);
+        db.delete(StateCapitalsDBHelper.TABLE_STATECAPITALS, null, null); // clear old data
 
         try {
-            InputStream is = context.getAssets().open( "state_capitals.csv" );
+            InputStream is = context.getAssets().open("state_capitals.csv");
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
             String line;
             boolean firstLine = true;
             while ((line = reader.readLine()) != null) {
-                // Skip the header line
-                if (firstLine) {
-                    firstLine = false;
-                    continue;
-                }
-
-                // Split the CSV line into columns
+                if (firstLine) { firstLine = false; continue; }
                 String[] parts = line.split(",");
-
-                // Your CSV has 7 columns, but we only need the first 4
                 if (parts.length < 4) continue;
 
-                String state = parts[0].trim();       // State
-                String capital = parts[1].trim();     // Capital city
-                String option1 = parts[2].trim();     // Second city
-                String option2 = parts[3].trim();     // Third city
+                String state = parts[0].trim();
+                String capital = parts[1].trim();
+                String option1 = parts[2].trim();
+                String option2 = parts[3].trim();
 
-                ContentValues values = new ContentValues();
+                android.content.ContentValues values = new android.content.ContentValues();
                 values.put(StateCapitalsDBHelper.STATECAPITALS_COLUMN_STATE, state);
                 values.put(StateCapitalsDBHelper.STATECAPITALS_COLUMN_CAPITAL, capital);
                 values.put(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION1, option1);
@@ -88,30 +114,28 @@ public class MainActivity extends AppCompatActivity {
 
             reader.close();
             db.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
-    public static List<Integer> getRandomizedQuestions(Context context, int count) {
+    // Pick N random question IDs
+    public static List<Integer> getRandomQuestionIds(Context context, int count) {
         List<Integer> ids = new ArrayList<>();
         StateCapitalsDBHelper dbHelper = StateCapitalsDBHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getReadableDatabase();
-        Cursor cursor = db.query(
-                StateCapitalsDBHelper.TABLE_STATECAPITALS,
+
+        Cursor cursor = db.query(StateCapitalsDBHelper.TABLE_STATECAPITALS,
                 new String[]{StateCapitalsDBHelper.STATECAPITALS_COLUMN_ID},
-                null, null, null, null, null
-        );
+                null, null, null, null, null);
+
         while (cursor.moveToNext()) {
             ids.add(cursor.getInt(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_ID)));
         }
+
         cursor.close();
         db.close();
 
         Collections.shuffle(ids);
-        if (ids.size() > count) {
-            ids = ids.subList(0, count);
-        }
+        if (ids.size() > count) ids = ids.subList(0, count);
 
         return ids;
     }

@@ -25,7 +25,9 @@ public class StateCapitalFragment extends Fragment {
     private RadioGroup radioGroup;
 
     private int position;  // which state we’re showing in the pager
-    private int questionNum = 1;
+    private int questionNumber = 1;
+
+    private String correctAnswer;
 
     public StateCapitalFragment() {
         // Required empty public constructor
@@ -83,7 +85,7 @@ public class StateCapitalFragment extends Fragment {
             String option1 = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION1));
             String option2 = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION2));
 
-            titleView.setText("Question " + questionNum++);
+            titleView.setText("Question " + questionNumber++);
             questionView.setText("What is the capital of " + state + "?");
 
 
@@ -97,9 +99,29 @@ public class StateCapitalFragment extends Fragment {
             radioButton1.setText(options.get(0));
             radioButton2.setText(options.get(1));
             radioButton3.setText(options.get(2));
+
+            if (cursor.moveToFirst()) {
+                correctAnswer = cursor.getString(cursor.getColumnIndexOrThrow(StateCapitalsDBHelper.STATECAPITALS_COLUMN_CAPITAL));
+            }
         }
+
+        radioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            String selected = "";
+            if (checkedId == radioButton1.getId()) selected = radioButton1.getText().toString();
+            else if (checkedId == radioButton2.getId()) selected = radioButton2.getText().toString();
+            else if (checkedId == radioButton3.getId()) selected = radioButton3.getText().toString();
+
+            // Save the answer in MainActivity
+            ((MainActivity) requireActivity()).saveAnswer(questionNumber, selected, correctAnswer);
+        });
 
         cursor.close();
         db.close();
     }
+
+    public String getCorrectAnswer() {
+        return correctAnswer;
+    }
+
+
 }
