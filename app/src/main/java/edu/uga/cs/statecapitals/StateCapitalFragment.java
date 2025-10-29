@@ -1,5 +1,8 @@
 package edu.uga.cs.statecapitals;
 
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -100,13 +103,15 @@ public class StateCapitalFragment extends Fragment {
         super.onViewCreated( view, savedInstanceState );
 
         TextView titleView = view.findViewById( R.id.titleView );
-        TextView highlightsView = view.findViewById( R.id.highlightsView );
+        TextView highlightsView = view.findViewById( R.id.questionView );
 
-        titleView.setText( states[ stateNum ] );
-        highlightsView.setText( stateCapitals[ stateNum ] );
+//        titleView.setText( states[ stateNum ] );
+//        highlightsView.setText( stateCapitals[ stateNum ] );
     }
 
     public static int getNumberOfStates() {
         return states.length;
     }
 }
+
+
