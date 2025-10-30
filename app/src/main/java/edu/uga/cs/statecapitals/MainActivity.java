@@ -16,85 +16,92 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private ViewPager2 pager;
+    private int totalQuestions = 6;
     private List<String> selectedAnswers = new ArrayList<>();
     private List<String> correctAnswers = new ArrayList<>();
     private List<Integer> questionIds = new ArrayList<>();
+    private StateCapitalsPagerAdapter adapter;
+    private boolean resultCalculated = false; // prevents multiple recalculations
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Populate DB from CSV if needed
         readCSV(this);
+        questionIds = getRandomQuestionIds(this, totalQuestions);
 
-        // Generate 6 random questions
-        questionIds = getRandomQuestionIds(this, 6);
-
-        // Restore state if applicable
         if (savedInstanceState != null) {
             selectedAnswers = savedInstanceState.getStringArrayList("selectedAnswers");
             correctAnswers = savedInstanceState.getStringArrayList("correctAnswers");
+        } else {
+            for (int i = 0; i < totalQuestions; i++) {
+                selectedAnswers.add(null);
+                correctAnswers.add(null);
+            }
         }
 
-        ViewPager2 pager = findViewById(R.id.viewpager);
-        StateCapitalsPagerAdapter adapter = new StateCapitalsPagerAdapter(
+        pager = findViewById(R.id.viewpager);
+        adapter = new StateCapitalsPagerAdapter(
                 getSupportFragmentManager(),
                 getLifecycle(),
                 questionIds
         );
         pager.setAdapter(adapter);
 
-        // Restore position
+        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                // Result page is index = totalQuestions
+                if (position == totalQuestions && !resultCalculated) {
+                    resultCalculated = true;
+                    int score = calculateScore();
+                    new QuizResultTask(MainActivity.this, score).execute();
+                    adapter.setScoreAndNotify(score);
+                }
+            }
+        });
+
         if (savedInstanceState != null) {
             int restoredPosition = savedInstanceState.getInt("currentPosition", 0);
             pager.setCurrentItem(restoredPosition, false);
         }
-
-        // Detect swipe past last question to submit automatically
-        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                if (position == questionIds.size()) {
-                    new QuizResultTask(MainActivity.this).execute();
-                }
-            }
-        });
     }
 
-    // Save state for rotation/process death
+    public void saveAnswer(int questionIndex, String selected, String correct) {
+        if (questionIndex < totalQuestions) {
+            selectedAnswers.set(questionIndex, selected);
+            correctAnswers.set(questionIndex, correct);
+        }
+    }
+
+    private int calculateScore() {
+        int score = 0;
+        for (int i = 0; i < totalQuestions; i++) {
+            if (selectedAnswers.get(i) != null && selectedAnswers.get(i).equals(correctAnswers.get(i))) {
+                score++;
+            }
+        }
+        return score;
+    }
+
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-
-        // Save current ViewPager position
-        ViewPager2 pager = findViewById(R.id.viewpager);
         outState.putInt("currentPosition", pager.getCurrentItem());
-
-        // Save selected answers and correct answers
         outState.putStringArrayList("selectedAnswers", new ArrayList<>(selectedAnswers));
         outState.putStringArrayList("correctAnswers", new ArrayList<>(correctAnswers));
     }
 
-    public void saveAnswer(int questionNumber, String selectedAnswer, String correctAnswer) {
-        if (selectedAnswers.size() < 6) selectedAnswers.add(selectedAnswer);
-        if (correctAnswers.size() < 6) correctAnswers.add(correctAnswer);
-    }
-
-    public List<String> getSelectedAnswers() { return selectedAnswers; }
-    public List<String> getCorrectAnswers() { return correctAnswers; }
-
-    // Read CSV and populate DB
     public static void readCSV(Context context) {
         StateCapitalsDBHelper dbHelper = StateCapitalsDBHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.delete(StateCapitalsDBHelper.TABLE_STATECAPITALS, null, null); // clear old data
+        db.delete(StateCapitalsDBHelper.TABLE_STATECAPITALS, null, null);
 
         try {
             InputStream is = context.getAssets().open("state_capitals.csv");
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
             String line;
             boolean firstLine = true;
             while ((line = reader.readLine()) != null) {
@@ -112,16 +119,15 @@ public class MainActivity extends AppCompatActivity {
                 values.put(StateCapitalsDBHelper.STATECAPITALS_COLUMN_CAPITAL, capital);
                 values.put(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION1, option1);
                 values.put(StateCapitalsDBHelper.STATECAPITALS_COLUMN_OPTION2, option2);
-
                 db.insert(StateCapitalsDBHelper.TABLE_STATECAPITALS, null, values);
             }
-
             reader.close();
             db.close();
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    // Pick N random question IDs
     public static List<Integer> getRandomQuestionIds(Context context, int count) {
         List<Integer> ids = new ArrayList<>();
         StateCapitalsDBHelper dbHelper = StateCapitalsDBHelper.getInstance(context);
