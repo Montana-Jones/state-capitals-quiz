@@ -96,7 +96,7 @@ public class StateCapitalFragment extends Fragment {
         a2.setText(opts.get(1));
         a3.setText(opts.get(2));
 
-        hint.setText("Select one answer; you can swipe anytime.");
+        hint.setText("Select your answer and swipe to move on to the next question.");
 
         // Save chosen answer back to activity
         group.setOnCheckedChangeListener((g, checkedId) -> {

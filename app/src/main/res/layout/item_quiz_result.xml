@@ -29,12 +29,5 @@
             android:text="Score: 5 / 6"
             android:layout_marginTop="4dp"/>
 
-        <TextView
-            android:id="@+id/detailText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Tap to view details"
-            android:textSize="12sp"
-            android:layout_marginTop="2dp"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

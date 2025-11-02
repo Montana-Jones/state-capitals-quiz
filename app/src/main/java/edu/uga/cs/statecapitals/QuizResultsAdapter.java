@@ -37,18 +37,16 @@ public class QuizResultsAdapter extends RecyclerView.Adapter<QuizResultsAdapter.
         QuizResult r = items.get(pos);
         h.dateText.setText(fmt.format(new Date(r.takenAtMillis)));
         h.scoreText.setText("Score: " + r.score + " / " + r.total);
-        h.detailText.setText("Tap to view details");
     }
 
     @Override public int getItemCount() { return items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        final TextView dateText, scoreText, detailText;
+        final TextView dateText, scoreText;
         VH(@NonNull View itemView) {
             super(itemView);
             dateText = itemView.findViewById(R.id.dateText);
             scoreText = itemView.findViewById(R.id.scoreText);
-            detailText = itemView.findViewById(R.id.detailText);
         }
     }
 }
